@@ -224,6 +224,11 @@ export function mul(head: Exp, tail: Exp[]): Exp {
   }
 }
 
+function seperateScalar(exps:Exp[]): [Scalar, Exp[]] {
+  let scalar = exps.filter(x=>x instanceof Scalar).map(x=>x as Scalar).reduce((l,r)=>l.mul(r), new Scalar(1))
+  return [scalar, exps.filter(x=>!(x instanceof Scalar))]
+}
+
 function add2(x:Exp, y:Exp): Exp {
   if (x instanceof Scalar) {
     if (x.isZero) {
@@ -232,6 +237,16 @@ function add2(x:Exp, y:Exp): Exp {
   }
   if (x instanceof Scalar && y instanceof Scalar) {
     return x.add(y)
+  }
+  let ad = decompose(x)
+  let bd = decompose(y)
+  if (ad.length == 1 && bd.length == 1) {
+    let [as, ao] = seperateScalar(ad[0])
+    let [bs, bo] = seperateScalar(bd[0])
+    if (ao.length > 0 && ao.length == bo.length && rng(ao.length).all(x=>ao[x].eq(bo[x]))) {
+      let sum = as.add(bs) as Exp
+      return [sum].concat(ao).reduce((l,r)=>new Mul(l,r))
+    }
   }
   return null
 }
@@ -256,16 +271,24 @@ export function add(head: Exp, tail: Exp[]): Exp {
     return tail.reduce((l, r) => new Add(l, r), head)
   }
 }
-// function evaluate(e:Exp): Exp {
-//   let de = decompose(e).map(x=>x.map(y=>evaluate(y)))
-//   let toadd = de.map(multiplands => {
-//     if (multiplands.length == 0) {
-//       return null
-//     } else {
-//       return mul(multiplands[0], multiplands.slice(1))
-//     }
-//   })
-// }
+
+export function evaluate(e:Exp): Exp {
+  let de = decompose(e)
+  if (de.length == 1) {
+    if (de[0].length == 1) {
+      return de[0][0]
+    }
+  }
+  let de2 = de.map(x=>x.map(y=>evaluate(y)))
+  let toadd = de2.map(multiplands => {
+    if (multiplands.length == 0) {
+      return null
+    } else {
+      return mul(multiplands[0], multiplands.slice(1))
+    }
+  }).filter(x=>x)
+  return add(toadd[0], toadd.slice(1))
+}
 
 function rng(n: number): Sequence<number> {
   if (n == 1) {
@@ -283,4 +306,16 @@ function rng2(start: number, lessThan: number): Sequence<number> {
     return asSequence([])
   }
   return range(start, lessThan - 1, 1)
+}
+export function xshow(e:Exp):string {
+  if (e instanceof Add) {
+    return  "add(" + xshow(e.l) + ", " + xshow(e.r) + ")"
+  } else if (e instanceof Mul) {
+    return  "mul(" + xshow(e.l) + ", " + xshow(e.r) + ")"
+  } else if (e instanceof Var) {
+    return e.name
+  } else if (e instanceof Scalar) {
+    return e.n.toString()
+  }
+  return `${e}`
 }

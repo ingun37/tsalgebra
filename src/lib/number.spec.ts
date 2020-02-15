@@ -1,6 +1,6 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
-import { double, power, Scalar, Var, decompose, Exp, Mul, Add, mul, add } from './number';
+import { double, power, Scalar, Var, decompose, Exp, Mul, Add, mul, add, evaluate, xshow } from './number';
 
 test('double', t => {
   t.is(double(2), 4);
@@ -45,8 +45,12 @@ test('mul', t => {
 test('add', t => {
   let v = add(n1, [x, n2, y, n3])
   let e = xadd(xadd(xsca(6), x),y)
-  
-  // let x = xmul(xsca(6),y)
-  // t.deepEqual(mul(n3, [n1, y, n2]), x)
+  t.deepEqual(v, e)
+})
+
+test('eval', t => {
+  let v = evaluate( xmul(xadd(x, xadd(y, n1)), xadd(y, n2)))
+  console.log(xshow(v))
+  let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xmul(y, y)), n2)
   t.deepEqual(v, e)
 })
