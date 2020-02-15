@@ -193,8 +193,8 @@ function seq<T>(x: T[]): Sequence<T> {
   return asSequence(x)
 }
 
-function commutativeMul(x:Exp, y:Exp): Exp {
-  if ( x instanceof Scalar) {
+function commutativeMul(x: Exp, y: Exp): Exp {
+  if (x instanceof Scalar) {
     if (y instanceof Scalar) {
       return x.mul(y)
     }
@@ -202,27 +202,60 @@ function commutativeMul(x:Exp, y:Exp): Exp {
   return null
 }
 
-export function mul(head:Exp, tail:Exp[]):Exp {
+export function mul(head: Exp, tail: Exp[]): Exp {
   if (tail.length == 0) {
     return head
   }
   let exps = [head].concat(tail)
   let len = exps.length
-  let com = rng(len).flatMap(i=>rng2(i+1, len).map((j):[number, number]=>[i, j]))
-  let join = com.map((pair):[[number, number], Exp]=> {
+  let com = rng(len).flatMap(i => rng2(i + 1, len).map((j): [number, number] => [i, j]))
+  let join = com.map((pair): [[number, number], Exp] => {
     let l = exps[pair[0]]
     let r = exps[pair[1]]
-    return [pair,  commutativeMul(l, r) || commutativeMul(r, l)]
-  }).firstOrNull(x=>x[1] != null)
+    return [pair, commutativeMul(l, r) || commutativeMul(r, l)]
+  }).firstOrNull(x => x[1] != null)
 
   if (join) {
-    let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i=>exps[i])
-    return mul(join[1], (remains.toArray()) )
+    let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i => exps[i])
+    return mul(join[1], (remains.toArray()))
   } else {
-    return tail.reduce((l,r)=>new Mul(l,r), head)
+    //TODO sequencial mul
+    return tail.reduce((l, r) => new Mul(l, r), head)
   }
 }
 
+function add2(x:Exp, y:Exp): Exp {
+  if (x instanceof Scalar) {
+    if (x.isZero) {
+      return y
+    }
+  }
+  if (x instanceof Scalar && y instanceof Scalar) {
+    return x.add(y)
+  }
+  return null
+}
+
+export function add(head: Exp, tail: Exp[]): Exp {
+  if (tail.length == 0) {
+    return head
+  }
+  let exps = [head].concat(tail)
+  let len = exps.length
+  let com = rng(len).flatMap(i => rng2(i + 1, len).map((j): [number, number] => [i, j]))
+  let join = com.map((pair): [[number, number], Exp] => {
+    let l = exps[pair[0]]
+    let r = exps[pair[1]]
+    return [pair, add2(l, r) || add2(r, l)]
+  }).firstOrNull(x => x[1] != null)
+
+  if (join) {
+    let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i => exps[i])
+    return add(join[1], (remains.toArray()))
+  } else {
+    return tail.reduce((l, r) => new Add(l, r), head)
+  }
+}
 // function evaluate(e:Exp): Exp {
 //   let de = decompose(e).map(x=>x.map(y=>evaluate(y)))
 //   let toadd = de.map(multiplands => {
@@ -234,20 +267,20 @@ export function mul(head:Exp, tail:Exp[]):Exp {
 //   })
 // }
 
-function rng(n:number): Sequence<number> {
-  if ( n == 1) {
-      return asSequence([0])
+function rng(n: number): Sequence<number> {
+  if (n == 1) {
+    return asSequence([0])
   } else if (n == 0) {
-      return asSequence([])
+    return asSequence([])
   }
-  return range(0, n-1, 1)
+  return range(0, n - 1, 1)
 }
 
-function rng2(start:number, lessThan:number): Sequence<number> {
-  if (start == lessThan-1) {
-      return asSequence([start])
+function rng2(start: number, lessThan: number): Sequence<number> {
+  if (start == lessThan - 1) {
+    return asSequence([start])
   } else if (start == lessThan) {
-      return asSequence([])
+    return asSequence([])
   }
-  return range(start, lessThan-1, 1)
+  return range(start, lessThan - 1, 1)
 }
