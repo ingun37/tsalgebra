@@ -23,6 +23,12 @@ function xadd(a:Exp, b:Exp): Add {
   return new Add(a, b)
 }
 test('decompose', t => {
-  console.log(decompose(xmul(xadd(x, n1), xadd(y, n1))))
   t.is(true, true)
+  let ex = [
+    [ x, y ],
+    [ x, n1 ],
+    [ n1, y ],
+    [ n1, n1 ]
+  ]
+  t.deepEqual(decompose(xmul(xadd(x, n1), xadd(y, n1))), ex)
 })

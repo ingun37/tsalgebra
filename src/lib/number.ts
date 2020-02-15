@@ -193,3 +193,7 @@ function seq<T>(x: T[]): Sequence<T> {
   return asSequence(x)
 }
 
+// function evaluate(e:Exp): Exp {
+//   let de = decompose(e)
+//   de.
+// }
