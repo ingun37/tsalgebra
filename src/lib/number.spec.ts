@@ -1,7 +1,7 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
-import { double, power,  decompose, mul, add, evaluate, xshow } from './number';
-import { Scalar, Var, Exp, Mul, Add, Power, arriso, injective} from './expressions';
+import { double, power,  decompose, mul, add, evaluate, xshow, isomorphic } from './number';
+import { Scalar, Var, Exp, Mul, Add, Power,} from './expressions';
 import { Rational } from './rational';
 test('double', t => {
   t.is(double(2), 4);
@@ -46,32 +46,32 @@ test('mul', t => {
 test('add', t => {
   let v = add(n1, [x, n2, y, n3])
   let e = xadd(xadd(xsca(6), x),y)
-  t.true(v.iso(e))
+  t.true(isomorphic(v,(e)))
 })
 
 test('eval', t => {
   let v = evaluate( xmul(xadd(x, xadd(y, n1)), xadd(y, n2)))
   console.log(xshow(v))
   let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xpow(y, 2)), n2)
-  t.true(v.iso(e))
+  t.true(isomorphic(v,(e)))
 })
 
 test('pow decompose', t => {
   let v = evaluate( xpow(xadd(x, n1), 2))
   console.log(xshow(v))
   let e = xadd(xadd(xmul(n2, x), xpow(x, 2)), n1)
-  t.true(v.iso(e))
+  t.true(isomorphic(v,(e)))
 })
 
 test('eq tests', t => {
-  t.true(n1.iso(xsca(1)))
-  t.true(new Scalar(new Rational(1, 2)).iso(new Scalar(new Rational(2,4))))
-  t.true(arriso([n1, n2], [n1, n2]))
-  t.true(injective([[n1]], [[n1]]))
+  t.true(isomorphic(n1,(xsca(1))))
+  t.true(isomorphic(new Scalar(new Rational(1, 2)),(new Scalar(new Rational(2,4)))))
+  // t.true(arriso([n1, n2], [n1, n2]))
+  // t.true(injective([[n1]], [[n1]]))
 })
 
 test('add iso', t=>{
   let x = xadd(n1, xadd(n2, n3))
   let y = xadd(n3, xadd(n1, n2))
-  t.true(x.iso(y))
+  t.true(isomorphic(x,(y)))
 })

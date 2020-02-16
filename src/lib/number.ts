@@ -112,14 +112,14 @@ function commutativeMul(x: Exp, y: Exp): Exp {
 }
 function adjacentCommuteMul(x: Exp, y: Exp): Exp {
   if (x instanceof Power && y instanceof Power) {
-    if (x.base.iso(y.base)) {
+    if (isomorphic( x.base,(y.base))) {
       return new Power(x.base, add(x.exponent, [y.exponent]))
     }
   }
-  if (x instanceof Power && x.base.iso(y)) {
+  if (x instanceof Power && isomorphic(x.base,(y))) {
     return new Power(x.base, add(x.exponent, [new Scalar(1)]))
   }
-  if (x.iso(y)) {
+  if (isomorphic(x,(y))) {
     return new Power(x, new Scalar(2))
   }
   return null
@@ -250,20 +250,28 @@ export function xshow(e:Exp):string {
   }
   return `${e}`
 }
+
 function withRest<T>(s: T[]): Sequence<[T, Sequence<T>]> {
   return seq(s).withIndex().map(x => {
       return [x.value, seq(s).filterIndexed((i, _) => i != x.index)]
   })
 }
-function arriso(x: Exp[], y: Exp[]): boolean {
-  return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.iso(b))
+
+export function isomorphic(x:Exp, y:Exp) {
+  if (x.eq(y)) { return true }
+  let a = decompose(x)
+  let b = decompose(y)
+  return injective(a, b) && injective(b, a)
 }
-// function injective(xset: Exp[][], yset: Exp[][]): boolean {
-//   if (xset.length == 0) {return true}
-//   if (yset.length == 0) {return false}
-//   return withRest(xset).any(([x, xrest]) => {
-//       return withRest(yset).any(([y, yrest]) => {
-//           return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
-//       })
-//   })
-// }
+function arriso(x: Exp[], y: Exp[]): boolean {
+  return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.eq(b))
+}
+function injective(xset: Exp[][], yset: Exp[][]): boolean {
+  if (xset.length == 0) {return true}
+  if (yset.length == 0) {return false}
+  return withRest(xset).any(([x, xrest]) => {
+      return withRest(yset).any(([y, yrest]) => {
+          return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
+      })
+  })
+}
