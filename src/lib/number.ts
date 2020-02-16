@@ -177,7 +177,7 @@ function add2(x:Exp, y:Exp): Exp {
   if (ad.length == 1 && bd.length == 1) {
     let [as, ao] = seperateScalar(ad[0])
     let [bs, bo] = seperateScalar(bd[0])
-    if (ao.length > 0 && ao.length == bo.length && rng(ao.length).all(x=>ao[x].eq(bo[x]))) {
+    if (arriso(ao, bo)) {
       let sum = as.add(bs) as Exp
       return [sum].concat(ao).reduce((l,r)=>new Mul(l,r))
     }
@@ -190,17 +190,12 @@ export function add(head: Exp, tail: Exp[]): Exp {
     return head
   }
   let exps = [head].concat(tail)
-  let len = exps.length
-  let com = rng(len).flatMap(i => rng2(i + 1, len).map((j): [number, number] => [i, j]))
-  let join = com.map((pair): [[number, number], Exp] => {
-    let l = exps[pair[0]]
-    let r = exps[pair[1]]
-    return [pair, add2(l, r) || add2(r, l)]
-  }).firstOrNull(x => x[1] != null)
-
+  let join = withRest(exps).flatMap(([x,xs])=>withRest(xs.toArray()).map(([y,ys]):[Exp, Exp[]]=>{
+    return [add2(x,y) || add2(y,x), ys.toArray()]
+  })).firstOrNull(x=>x[0] != null)
+  
   if (join) {
-    let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i => exps[i])
-    return add(join[1], (remains.toArray()))
+    return add(join[0], join[1])
   } else {
     return tail.reduce((l, r) => new Add(l, r), head)
   }
@@ -255,3 +250,20 @@ export function xshow(e:Exp):string {
   }
   return `${e}`
 }
+function withRest<T>(s: T[]): Sequence<[T, Sequence<T>]> {
+  return seq(s).withIndex().map(x => {
+      return [x.value, seq(s).filterIndexed((i, _) => i != x.index)]
+  })
+}
+function arriso(x: Exp[], y: Exp[]): boolean {
+  return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.iso(b))
+}
+// function injective(xset: Exp[][], yset: Exp[][]): boolean {
+//   if (xset.length == 0) {return true}
+//   if (yset.length == 0) {return false}
+//   return withRest(xset).any(([x, xrest]) => {
+//       return withRest(yset).any(([y, yrest]) => {
+//           return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
+//       })
+//   })
+// }
