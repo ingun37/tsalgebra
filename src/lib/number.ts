@@ -1,7 +1,7 @@
 import Sequence, {
   asSequence, range
 } from 'sequency';
-import { Exp, Scalar, Var, Mul, Add, Power, Negate } from './expressions'
+import { Exp, Scalar, Var, Mul, Add, Power, Negate, Mat } from './expressions'
 import { Rational } from './rational';
 /**
  * Multiplies a value by 2. (Also a full example of Typedoc's functionality.)
@@ -24,9 +24,7 @@ import { Rational } from './rational';
  * @returns       Comment describing the return type.
  * @anotherNote   Some other value.
  */
-export function double(value: number): number {
-  return value * 2;
-}
+
 
 /**
  * Raise the value of the first parameter to the power of the second using the es7 `**` operator.
@@ -45,11 +43,7 @@ export function double(value: number): number {
  * // => 8
  * ```
  */
-export function power(base: number, exponent: number): number {
 
-  // This is a proposed es7 operator, which should be transpiled by Typescript
-  return base ** exponent;
-}
 
 function isRational(n: number | Rational): n is Rational {
   return (n as Rational).add !== undefined;
@@ -63,8 +57,8 @@ export function decompose(e: Exp): Exp[][] {
   if (e instanceof Var) { return [[e]] }
   if (e instanceof Negate) {
     let d = decompose(e.e)
-    let neg:Exp = new Scalar(-1)
-    return d.map(x=>[neg].concat(x))
+    let neg: Exp = new Scalar(-1)
+    return d.map(x => [neg].concat(x))
   }
   if (e instanceof Power) {
     let x = e.exponent
@@ -78,15 +72,15 @@ export function decompose(e: Exp): Exp[][] {
             return [[new Scalar(1)]]
           } else if (n == 1) {
             return bd
-          } else if (n >0) {
-            return decompose( rng(n).map(_=>b).reduce((l,r)=>new Mul(l,r)) )
+          } else if (n > 0) {
+            return decompose(rng(n).map(_ => b).reduce((l, r) => new Mul(l, r)))
           }
         }
       }
     }
     if (bd.length == 1) {
       if (bd[0].length > 0) {
-        let aa = bd[0].map(z=> new Power(z,x) as Exp)
+        let aa = bd[0].map(z => new Power(z, x) as Exp)
         return [aa]
       }
     }
@@ -120,15 +114,33 @@ function commutativeMul(x: Exp, y: Exp): Exp {
 }
 function adjacentCommuteMul(x: Exp, y: Exp): Exp {
   if (x instanceof Power && y instanceof Power) {
-    if (isomorphic( x.base,(y.base))) {
+    if (isomorphic(x.base, (y.base))) {
       return new Power(x.base, add(x.exponent, [y.exponent]))
     }
   }
-  if (x instanceof Power && isomorphic(x.base,(y))) {
+  if (x instanceof Power && isomorphic(x.base, (y))) {
     return new Power(x.base, add(x.exponent, [new Scalar(1)]))
   }
-  if (isomorphic(x,(y))) {
+  if (isomorphic(x, (y))) {
     return new Power(x, new Scalar(2))
+  }
+  return null
+}
+
+function adjacentMul(l: Exp, r: Exp): Exp {
+  if (l instanceof Mat && r instanceof Mat) {
+    if (l.collen == r.rowlen) {
+      let newElements = rng(l.rowlen).map(row => {
+        return rng(r.collen).map(col => {
+          let lrow = seq(l.elements[row])
+          let rcol = seq(r.elements.map(rrow => rrow[col]))
+          return evaluate(lrow.zip(rcol).map(([x, y]) => new Mul(x, y)).reduce((l: Exp, r) => new Add(l, r)))
+        })
+      })
+      let newE = newElements.map(x => x.toArray()).toArray()
+      console.log(newE)
+      return new Mat(newE)
+    }
   }
   return null
 }
@@ -137,36 +149,36 @@ export function mul(head: Exp, tail: Exp[]): Exp {
     return head
   }
   let exps = [head].concat(tail)
-  let join = withRest(exps).flatMap(([x,xs])=>withRest(xs.toArray()).map(([y,ys]):[Exp, Exp[]]=>{
-    return [commutativeMul(x,y), ys.toArray()]
-  })).firstOrNull(x=>x[0] != null)
-  
+  let join = withRest(exps).flatMap(([x, xs]) => withRest(xs.toArray()).map(([y, ys]): [Exp, Exp[]] => {
+    return [commutativeMul(x, y), ys.toArray()]
+  })).firstOrNull(x => x[0] != null)
+
   if (join) {
     return mul(join[0], join[1])
   }
-  
-  let join2 = rng(exps.length-1).map((n):[number, Exp]=>{
+
+  let join2 = rng(exps.length - 1).map((n): [number, Exp] => {
     let l = exps[n]
-    let r = exps[n+1]
-    return [n, adjacentCommuteMul(l,r) || adjacentCommuteMul(r,l)]
-  }).firstOrNull(([_,e])=>e != null)
+    let r = exps[n + 1]
+    return [n, adjacentMul(l, r) || adjacentCommuteMul(l, r) || adjacentCommuteMul(r, l)]
+  }).firstOrNull(([_, e]) => e != null)
 
   if (join2) {
     let i = join2[0]
     let e = join2[1]
-    let remains = exps.slice(0, i).concat([e], exps.slice(i+2))
-    return  mul(remains[0], remains.slice(1))
+    let remains = exps.slice(0, i).concat([e], exps.slice(i + 2))
+    return mul(remains[0], remains.slice(1))
   }
 
   return tail.reduce((l, r) => new Mul(l, r), head)
 }
 
-function seperateScalar(exps:Exp[]): [Scalar, Exp[]] {
-  let scalar = exps.filter(x=>x instanceof Scalar).map(x=>x as Scalar).reduce((l,r)=>l.mul(r), new Scalar(1))
-  return [scalar, exps.filter(x=>!(x instanceof Scalar))]
+function seperateScalar(exps: Exp[]): [Scalar, Exp[]] {
+  let scalar = exps.filter(x => x instanceof Scalar).map(x => x as Scalar).reduce((l, r) => l.mul(r), new Scalar(1))
+  return [scalar, exps.filter(x => !(x instanceof Scalar))]
 }
 
-function add2(x:Exp, y:Exp): Exp {
+function add2(x: Exp, y: Exp): Exp {
   if (x instanceof Scalar) {
     if (x.isZero) {
       return y
@@ -185,7 +197,7 @@ function add2(x:Exp, y:Exp): Exp {
       if (sum.isZero) {
         return new Scalar(0)
       }
-      return [sum as Exp].concat(ao).reduce((l,r)=>new Mul(l,r))
+      return [sum as Exp].concat(ao).reduce((l, r) => new Mul(l, r))
     }
   }
   return null
@@ -196,10 +208,10 @@ export function add(head: Exp, tail: Exp[]): Exp {
     return head
   }
   let exps = [head].concat(tail)
-  let join = withRest(exps).flatMap(([x,xs])=>withRest(xs.toArray()).map(([y,ys]):[Exp, Exp[]]=>{
-    return [add2(x,y), ys.toArray()]
-  })).firstOrNull(x=>x[0] != null)
-  
+  let join = withRest(exps).flatMap(([x, xs]) => withRest(xs.toArray()).map(([y, ys]): [Exp, Exp[]] => {
+    return [add2(x, y), ys.toArray()]
+  })).firstOrNull(x => x[0] != null)
+
   if (join) {
     return add(join[0], join[1])
   } else {
@@ -207,21 +219,21 @@ export function add(head: Exp, tail: Exp[]): Exp {
   }
 }
 
-export function evaluate(e:Exp): Exp {
+export function evaluate(e: Exp): Exp {
   let de = decompose(e)
   if (de.length == 1) {
     if (de[0].length == 1) {
       return de[0][0]
     }
   }
-  let de2 = de.map(x=>x.map(y=>evaluate(y)))
-  let toadd = de2.map(multiplands => {
+
+  let toadd = de.map(multiplands => {
     if (multiplands.length == 0) {
       return null
     } else {
       return mul(multiplands[0], multiplands.slice(1))
     }
-  }).filter(x=>x)
+  }).filter(x => x)
   return add(toadd[0], toadd.slice(1))
 }
 
@@ -242,11 +254,11 @@ function rng(n: number): Sequence<number> {
 //   }
 //   return range(start, lessThan - 1, 1)
 // }
-export function xshow(e:Exp):string {
+export function xshow(e: Exp): string {
   if (e instanceof Add) {
-    return  "add(" + xshow(e.l) + ", " + xshow(e.r) + ")"
+    return "add(" + xshow(e.l) + ", " + xshow(e.r) + ")"
   } else if (e instanceof Mul) {
-    return  "mul(" + xshow(e.l) + ", " + xshow(e.r) + ")"
+    return "mul(" + xshow(e.l) + ", " + xshow(e.r) + ")"
   } else if (e instanceof Var) {
     return e.name
   } else if (e instanceof Scalar) {
@@ -259,12 +271,23 @@ export function xshow(e:Exp):string {
 
 function withRest<T>(s: T[]): Sequence<[T, Sequence<T>]> {
   return seq(s).withIndex().map(x => {
-      return [x.value, seq(s).filterIndexed((i, _) => i != x.index)]
+    return [x.value, seq(s).filterIndexed((i, _) => i != x.index)]
   })
 }
 
-export function isomorphic(x:Exp, y:Exp) {
+export function isomorphic(x: Exp, y: Exp) {
   if (x.eq(y)) { return true }
+  if (x instanceof Mat && y instanceof Mat) {
+    if (x.collen == y.collen && x.rowlen == y.rowlen) {
+      if (x.collen > 0 && x.rowlen > 0) {
+        return seq(x.elements).flatten().zip(seq(y.elements).flatten()).all(([q,w])=>isomorphic(q,w))
+      } else {
+        return true
+      }
+    } else {
+      return false
+    }
+  }
   let a = decompose(x)
   let b = decompose(y)
   return injective(a, b) && injective(b, a)
@@ -273,11 +296,11 @@ function arriso(x: Exp[], y: Exp[]): boolean {
   return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.eq(b))
 }
 function injective(xset: Exp[][], yset: Exp[][]): boolean {
-  if (xset.length == 0) {return true}
-  if (yset.length == 0) {return false}
+  if (xset.length == 0) { return true }
+  if (yset.length == 0) { return false }
   return withRest(xset).any(([x, xrest]) => {
-      return withRest(yset).any(([y, yrest]) => {
-          return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
-      })
+    return withRest(yset).any(([y, yrest]) => {
+      return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
+    })
   })
 }

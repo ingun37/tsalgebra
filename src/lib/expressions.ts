@@ -1,4 +1,5 @@
 import { Rational } from "./rational";
+import { asSequence  } from "sequency";
 
 export interface Exp {
     eq(e: Exp): boolean
@@ -157,3 +158,29 @@ export class Negate implements Exp {
     }
 }
 
+export class Mat implements Exp {
+    get collen():number {
+        if (this.rowlen > 1) {
+            return this.elements[0].length
+        } else {
+            return 0
+        }
+    }
+    get rowlen():number {
+        return this.elements.length
+    }
+    eq(e: Exp):boolean {
+        if (e instanceof Mat) {
+            if (e.collen == this.collen && e.rowlen == this.rowlen ){
+                if (e.collen > 0 && e.rowlen > 0) {
+                    return asSequence(this.elements).flatten().zip(asSequence(e.elements).flatten()).all(([q,w])=>q.eq(w))
+                } else {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    constructor(
+        public elements:Exp[][]) {}
+}

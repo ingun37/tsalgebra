@@ -1,15 +1,9 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
-import { double, power,  decompose, mul, add, evaluate, isomorphic } from './number';
-import { Scalar, Var, Exp, Mul, Add, Power, Negate,} from './expressions';
+import {  decompose, mul, add, evaluate, isomorphic, xshow } from './number';
+import { Scalar, Var, Exp, Mul, Add, Power, Negate, Mat,} from './expressions';
 import { Rational } from './rational';
-test('double', t => {
-  t.is(double(2), 4);
-});
 
-test('power', t => {
-  t.is(power(2, 4), 16);
-});
 
 function xsca(n: number): Scalar { return new Scalar(n) }
 function xvar(l: string): Var { return new Var(l) }
@@ -84,4 +78,18 @@ test('neg test', t=>{
 
   // console.log(xshow(v))
   t.true(isomorphic(v, xadd(xpow(x, 2), xsca(-1)) ))
+})
+
+function xmat(e:number[][]):Mat {
+  let a = e.map(r=>r.map(c=>xsca(c) as Exp))
+  return new Mat(a)
+}
+
+test('mat mul test', t=>{
+  let i = xmat([[1,0],[0,1]])
+  let v = evaluate(xmul(i, i))
+
+  console.log(xshow(i))
+  // t.true(true)
+  t.true(isomorphic(v, i))
 })
