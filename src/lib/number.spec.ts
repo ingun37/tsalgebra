@@ -2,6 +2,7 @@
 import test from 'ava';
 import { double, power,  decompose, mul, add, evaluate, xshow } from './number';
 import { Scalar, Var, Exp, Mul, Add, Power, } from './expressions';
+import { Rational } from './rational';
 test('double', t => {
   t.is(double(2), 4);
 });
@@ -61,3 +62,14 @@ test('pow decompose', t => {
   let e = xadd(xadd(xmul(n2, x), xpow(x, 2)), n1)
   t.deepEqual(v, e)
 })
+
+test('eq tests', t => {
+  t.true(n1.iso(xsca(1)))
+  t.true(new Scalar(new Rational(1, 2)).iso(new Scalar(new Rational(2,4))))
+})
+
+// test('add iso', t=>{
+//   let x = xadd(n1, xadd(n2, n3))
+//   let y = xadd(n3, xadd(n1, n2))
+//   t.true(x.iso(y))
+// })

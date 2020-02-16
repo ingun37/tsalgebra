@@ -1,8 +1,10 @@
 import { Rational } from "./rational";
+import { decompose } from "./number";
+import Sequence, { asSequence } from "sequency";
 
 export interface Exp {
     eq(e: Exp): boolean
-    iso(e:Exp): boolean
+    iso(e: Exp): boolean
 }
 interface Nullary extends Exp { }
 
@@ -14,6 +16,13 @@ function isRational(n: number | Rational): n is Rational {
 // }
 export class Scalar implements Nullary {
     eq(e: Exp): boolean {
+        if (e instanceof Scalar) {
+            if (isRational(this.n)) {
+                if (isRational(e.n)) {
+                    return e.n.numerator == this.n.numerator && e.n.denominator == this.n.denominator
+                }
+            }
+        }
         return e instanceof Scalar && e.n == this.n
     }
     iso(e: Exp): boolean {
@@ -104,21 +113,45 @@ export class Var implements Nullary {
     eq(e: Exp): boolean {
         return e instanceof Var && e.name == this.name
     }
-    iso(e:Exp): boolean {return this.eq(e)}
+    iso(e: Exp): boolean { return this.eq(e) }
     constructor(
         public name: string
     ) { }
 }
 
+function seq<T>(x: T[]): Sequence<T> {
+    return asSequence(x)
+}
+
+
+export function withRest<T>(s: Sequence<T>): Sequence<[T, Sequence<T>]> {
+    let scp = s.toArray()
+    return seq(scp).withIndex().map(x => {
+        return [x.value, seq(scp).filterIndexed((i, _) => i != x.index)]
+    })
+}
+function arriso(x: Exp[], y: Exp[]): boolean {
+    return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.iso(b))
+}
+function injective(xset: Exp[][], yset: Exp[][]): boolean {
+    return withRest(seq(xset)).any(([x, xrest]) => {
+        return withRest(seq(yset)).any(([y, yrest]) => {
+            return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
+        })
+    })
+}
 export class Add implements Exp {
     eq(e: Exp): boolean {
         return e instanceof Add && e.l.eq(this.l) && e.r.eq(this.r)
     }
-    iso(e:Exp): boolean {
-        return e.eq(this) || e.eq(this.swapped)
+
+    iso(e: Exp): boolean {
+        let x = decompose(this)
+        let y = decompose(e)
+        return injective(x, y) && injective(y, x)
     }
-    get swapped():Add {
-        return new Add(this.r,this.l)
+    get swapped(): Add {
+        return new Add(this.r, this.l)
     }
     constructor(
         public l: Exp,
@@ -143,7 +176,7 @@ export class Power implements Exp {
     iso(e: Exp): boolean {
         return this.eq(e)
     }
-    
+
     constructor(
         public base: Exp,
         public exponent: Exp
