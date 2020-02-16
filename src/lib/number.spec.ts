@@ -1,7 +1,7 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
 import { double, power,  decompose, mul, add, evaluate, xshow } from './number';
-import { Scalar, Var, Exp, Mul, Add, } from './expressions';
+import { Scalar, Var, Exp, Mul, Add, Power, } from './expressions';
 test('double', t => {
   t.is(double(2), 4);
 });
@@ -12,7 +12,7 @@ test('power', t => {
 
 function xsca(n: number): Scalar { return new Scalar(n) }
 function xvar(l: string): Var { return new Var(l) }
-
+function xpow(a:Exp, n:number): Power {return new Power(a, xsca(n))}
 let x = xvar("x")
 let y = xvar("y")
 let n1 = xsca(1)
@@ -51,6 +51,13 @@ test('add', t => {
 test('eval', t => {
   let v = evaluate( xmul(xadd(x, xadd(y, n1)), xadd(y, n2)))
   console.log(xshow(v))
-  let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xmul(y, y)), n2)
+  let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xpow(y, 2)), n2)
+  t.deepEqual(v, e)
+})
+
+test('pow decompose', t => {
+  let v = evaluate( xpow(xadd(x, n1), 2))
+  console.log(xshow(v))
+  let e = xadd(xadd(xmul(n2, x), xpow(x, 2)), n1)
   t.deepEqual(v, e)
 })

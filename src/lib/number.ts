@@ -1,7 +1,8 @@
 import Sequence, {
   asSequence, range
 } from 'sequency';
-import { Exp, Scalar, Var, Mul, Add } from './expressions'
+import { Exp, Scalar, Var, Mul, Add, Power } from './expressions'
+import { Rational } from './rational';
 /**
  * Multiplies a value by 2. (Also a full example of Typedoc's functionality.)
  *
@@ -50,9 +51,41 @@ export function power(base: number, exponent: number): number {
   return base ** exponent;
 }
 
+function isRational(n: number | Rational): n is Rational {
+  return (n as Rational).add !== undefined;
+}
+function isNumber(n: number | Rational): n is number {
+  return !isRational(n)
+}
+
 export function decompose(e: Exp): Exp[][] {
   if (e instanceof Scalar) { return [[e]] }
   if (e instanceof Var) { return [[e]] }
+  if (e instanceof Power) {
+    let x = e.exponent
+    let b = e.base
+    let bd = decompose(b)
+    if (x instanceof Scalar) {
+      let n = x.n
+      if (isNumber(n)) {
+        if (Number.isInteger(n)) {
+          if (n == 0) {
+            return [[new Scalar(1)]]
+          } else if (n == 1) {
+            return bd
+          } else if (n >0) {
+            return decompose( rng(n).map(_=>b).reduce((l,r)=>new Mul(l,r)) )
+          }
+        }
+      }
+    }
+    if (bd.length == 1) {
+      if (bd[0].length > 0) {
+        let aa = bd[0].map(z=> new Power(z,x) as Exp)
+        return [aa]
+      }
+    }
+  }
   if (e instanceof Mul) {
     let ld = decompose(e.l)
     let rd = decompose(e.r)
@@ -62,7 +95,7 @@ export function decompose(e: Exp): Exp[][] {
   if (e instanceof Add) {
     return decompose(e.l).concat(decompose(e.r))
   }
-  throw e
+  return [[e]]
 }
 
 function seq<T>(x: T[]): Sequence<T> {
@@ -77,7 +110,20 @@ function commutativeMul(x: Exp, y: Exp): Exp {
   }
   return null
 }
-
+function adjacentCommuteMul(x: Exp, y: Exp): Exp {
+  if (x instanceof Power && y instanceof Power) {
+    if (x.base.iso(y.base)) {
+      return new Power(x.base, add(x.exponent, [y.exponent]))
+    }
+  }
+  if (x instanceof Power && x.base.iso(y)) {
+    return new Power(x.base, add(x.exponent, [new Scalar(1)]))
+  }
+  if (x.iso(y)) {
+    return new Power(x, new Scalar(2))
+  }
+  return null
+}
 export function mul(head: Exp, tail: Exp[]): Exp {
   if (tail.length == 0) {
     return head
@@ -94,10 +140,22 @@ export function mul(head: Exp, tail: Exp[]): Exp {
   if (join) {
     let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i => exps[i])
     return mul(join[1], (remains.toArray()))
-  } else {
-    //TODO sequencial mul
-    return tail.reduce((l, r) => new Mul(l, r), head)
   }
+
+  let join2 = rng(len-1).map((n):[number, Exp]=>{
+    let l = exps[n]
+    let r = exps[n+1]
+    return [n, adjacentCommuteMul(l,r) || adjacentCommuteMul(r,l)]
+  }).firstOrNull(([_,e])=>e != null)
+
+  if (join2) {
+    let i = join2[0]
+    let e = join2[1]
+    let remains = exps.slice(0, i).concat([e], exps.slice(i+2))
+    return  mul(remains[0], remains.slice(1))
+  }
+
+  return tail.reduce((l, r) => new Mul(l, r), head)
 }
 
 function seperateScalar(exps:Exp[]): [Scalar, Exp[]] {
@@ -192,6 +250,8 @@ export function xshow(e:Exp):string {
     return e.name
   } else if (e instanceof Scalar) {
     return e.n.toString()
+  } else if (e instanceof Power) {
+    return "pow(" + xshow(e.base) + ", " + xshow(e.exponent) + ")"
   }
   return `${e}`
 }
