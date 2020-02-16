@@ -191,7 +191,7 @@ export function add(head: Exp, tail: Exp[]): Exp {
   }
   let exps = [head].concat(tail)
   let join = withRest(exps).flatMap(([x,xs])=>withRest(xs.toArray()).map(([y,ys]):[Exp, Exp[]]=>{
-    return [add2(x,y) || add2(y,x), ys.toArray()]
+    return [add2(x,y), ys.toArray()]
   })).firstOrNull(x=>x[0] != null)
   
   if (join) {
