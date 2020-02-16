@@ -46,21 +46,21 @@ test('mul', t => {
 test('add', t => {
   let v = add(n1, [x, n2, y, n3])
   let e = xadd(xadd(xsca(6), x),y)
-  t.deepEqual(v, e)
+  t.true(v.iso(e))
 })
 
 test('eval', t => {
   let v = evaluate( xmul(xadd(x, xadd(y, n1)), xadd(y, n2)))
   console.log(xshow(v))
   let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xpow(y, 2)), n2)
-  t.deepEqual(v, e)
+  t.true(v.iso(e))
 })
 
 test('pow decompose', t => {
   let v = evaluate( xpow(xadd(x, n1), 2))
   console.log(xshow(v))
   let e = xadd(xadd(xmul(n2, x), xpow(x, 2)), n1)
-  t.deepEqual(v, e)
+  t.true(v.iso(e))
 })
 
 test('eq tests', t => {
