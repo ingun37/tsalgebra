@@ -70,8 +70,8 @@ test('eq tests', t => {
   t.true(injective([[n1]], [[n1]]))
 })
 
-// test('add iso', t=>{
-//   let x = xadd(n1, xadd(n2, n3))
-//   let y = xadd(n3, xadd(n1, n2))
-//   t.true(x.iso(y))
-// })
+test('add iso', t=>{
+  let x = xadd(n1, xadd(n2, n3))
+  let y = xadd(n3, xadd(n1, n2))
+  t.true(x.iso(y))
+})
