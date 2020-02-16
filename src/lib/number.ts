@@ -1,7 +1,7 @@
 import Sequence, {
   asSequence, range
 } from 'sequency';
-import { Exp, Scalar, Var, Mul, Add, Power } from './expressions'
+import { Exp, Scalar, Var, Mul, Add, Power, Negate } from './expressions'
 import { Rational } from './rational';
 /**
  * Multiplies a value by 2. (Also a full example of Typedoc's functionality.)
@@ -61,6 +61,11 @@ function isNumber(n: number | Rational): n is number {
 export function decompose(e: Exp): Exp[][] {
   if (e instanceof Scalar) { return [[e]] }
   if (e instanceof Var) { return [[e]] }
+  if (e instanceof Negate) {
+    let d = decompose(e.e)
+    let neg:Exp = new Scalar(-1)
+    return d.map(x=>[neg].concat(x))
+  }
   if (e instanceof Power) {
     let x = e.exponent
     let b = e.base
@@ -107,6 +112,9 @@ function commutativeMul(x: Exp, y: Exp): Exp {
     if (y instanceof Scalar) {
       return x.mul(y)
     }
+  }
+  if (x instanceof Scalar && x.isZero) {
+    return new Scalar(0)
   }
   return null
 }
@@ -173,8 +181,11 @@ function add2(x:Exp, y:Exp): Exp {
     let [as, ao] = seperateScalar(ad[0])
     let [bs, bo] = seperateScalar(bd[0])
     if (arriso(ao, bo)) {
-      let sum = as.add(bs) as Exp
-      return [sum].concat(ao).reduce((l,r)=>new Mul(l,r))
+      let sum = as.add(bs)
+      if (sum.isZero) {
+        return new Scalar(0)
+      }
+      return [sum as Exp].concat(ao).reduce((l,r)=>new Mul(l,r))
     }
   }
   return null

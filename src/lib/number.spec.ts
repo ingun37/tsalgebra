@@ -1,7 +1,7 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
-import { double, power,  decompose, mul, add, evaluate, xshow, isomorphic } from './number';
-import { Scalar, Var, Exp, Mul, Add, Power,} from './expressions';
+import { double, power,  decompose, mul, add, evaluate, isomorphic } from './number';
+import { Scalar, Var, Exp, Mul, Add, Power, Negate,} from './expressions';
 import { Rational } from './rational';
 test('double', t => {
   t.is(double(2), 4);
@@ -51,14 +51,14 @@ test('add', t => {
 
 test('eval', t => {
   let v = evaluate( xmul(xadd(x, xadd(y, n1)), xadd(y, n2)))
-  console.log(xshow(v))
+  // console.log(xshow(v))
   let e = xadd(xadd(xadd(xadd(xmul(n3, y), xmul(x, y)), xmul(x, n2)), xpow(y, 2)), n2)
   t.true(isomorphic(v,(e)))
 })
 
 test('pow decompose', t => {
   let v = evaluate( xpow(xadd(x, n1), 2))
-  console.log(xshow(v))
+  // console.log(xshow(v))
   let e = xadd(xadd(xmul(n2, x), xpow(x, 2)), n1)
   t.true(isomorphic(v,(e)))
 })
@@ -74,4 +74,14 @@ test('add iso', t=>{
   let x = xadd(n1, xadd(n2, n3))
   let y = xadd(n3, xadd(n1, n2))
   t.true(isomorphic(x,(y)))
+})
+
+
+test('neg test', t=>{
+  let x = xvar("x")
+  let n1 = xsca(1)
+  let v = evaluate(xmul(xadd(x, new Negate(n1)), xadd(x, n1)))
+
+  // console.log(xshow(v))
+  t.true(isomorphic(v, xadd(xpow(x, 2), xsca(-1)) ))
 })

@@ -148,3 +148,12 @@ export class Power implements Exp {
     }
 }
 
+export class Negate implements Exp {
+    constructor(
+        public e: Exp,
+    ) { }
+    eq(e: Exp): boolean {
+        return e instanceof Negate && e.e.eq(this.e)
+    }
+}
+
