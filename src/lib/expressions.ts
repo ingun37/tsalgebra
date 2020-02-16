@@ -124,18 +124,19 @@ function seq<T>(x: T[]): Sequence<T> {
 }
 
 
-export function withRest<T>(s: Sequence<T>): Sequence<[T, Sequence<T>]> {
-    let scp = s.toArray()
-    return seq(scp).withIndex().map(x => {
-        return [x.value, seq(scp).filterIndexed((i, _) => i != x.index)]
+export function withRest<T>(s: T[]): Sequence<[T, Sequence<T>]> {
+    return seq(s).withIndex().map(x => {
+        return [x.value, seq(s).filterIndexed((i, _) => i != x.index)]
     })
 }
-function arriso(x: Exp[], y: Exp[]): boolean {
+export function arriso(x: Exp[], y: Exp[]): boolean {
     return x.length == y.length && seq(x).zip(seq(y)).all(([a, b]) => a.iso(b))
 }
-function injective(xset: Exp[][], yset: Exp[][]): boolean {
-    return withRest(seq(xset)).any(([x, xrest]) => {
-        return withRest(seq(yset)).any(([y, yrest]) => {
+export function injective(xset: Exp[][], yset: Exp[][]): boolean {
+    if (xset.length == 0) {return true}
+    if (yset.length == 0) {return false}
+    return withRest(xset).any(([x, xrest]) => {
+        return withRest(yset).any(([y, yrest]) => {
             return arriso(x, y) && injective(xrest.toArray(), yrest.toArray())
         })
     })

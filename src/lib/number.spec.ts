@@ -1,7 +1,7 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
 import { double, power,  decompose, mul, add, evaluate, xshow } from './number';
-import { Scalar, Var, Exp, Mul, Add, Power, } from './expressions';
+import { Scalar, Var, Exp, Mul, Add, Power, arriso, injective} from './expressions';
 import { Rational } from './rational';
 test('double', t => {
   t.is(double(2), 4);
@@ -66,6 +66,8 @@ test('pow decompose', t => {
 test('eq tests', t => {
   t.true(n1.iso(xsca(1)))
   t.true(new Scalar(new Rational(1, 2)).iso(new Scalar(new Rational(2,4))))
+  t.true(arriso([n1, n2], [n1, n2]))
+  t.true(injective([[n1]], [[n1]]))
 })
 
 // test('add iso', t=>{
