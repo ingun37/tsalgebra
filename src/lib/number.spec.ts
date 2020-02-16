@@ -1,7 +1,7 @@
 // tslint:disable:no-expression-statement
 import test from 'ava';
-import { double, power, Scalar, Var, decompose, Exp, Mul, Add, mul, add, evaluate, xshow } from './number';
-
+import { double, power,  decompose, mul, add, evaluate, xshow } from './number';
+import { Scalar, Var, Exp, Mul, Add, } from './expressions';
 test('double', t => {
   t.is(double(2), 4);
 });
