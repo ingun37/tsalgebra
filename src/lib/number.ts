@@ -129,20 +129,15 @@ export function mul(head: Exp, tail: Exp[]): Exp {
     return head
   }
   let exps = [head].concat(tail)
-  let len = exps.length
-  let com = rng(len).flatMap(i => rng2(i + 1, len).map((j): [number, number] => [i, j]))
-  let join = com.map((pair): [[number, number], Exp] => {
-    let l = exps[pair[0]]
-    let r = exps[pair[1]]
-    return [pair, commutativeMul(l, r) || commutativeMul(r, l)]
-  }).firstOrNull(x => x[1] != null)
-
+  let join = withRest(exps).flatMap(([x,xs])=>withRest(xs.toArray()).map(([y,ys]):[Exp, Exp[]]=>{
+    return [commutativeMul(x,y), ys.toArray()]
+  })).firstOrNull(x=>x[0] != null)
+  
   if (join) {
-    let remains = rng(len).filter(x => x != join[0][0] && x != join[0][1]).map(i => exps[i])
-    return mul(join[1], (remains.toArray()))
+    return mul(join[0], join[1])
   }
-
-  let join2 = rng(len-1).map((n):[number, Exp]=>{
+  
+  let join2 = rng(exps.length-1).map((n):[number, Exp]=>{
     let l = exps[n]
     let r = exps[n+1]
     return [n, adjacentCommuteMul(l,r) || adjacentCommuteMul(r,l)]
@@ -228,14 +223,14 @@ function rng(n: number): Sequence<number> {
   return range(0, n - 1, 1)
 }
 
-function rng2(start: number, lessThan: number): Sequence<number> {
-  if (start == lessThan - 1) {
-    return asSequence([start])
-  } else if (start == lessThan) {
-    return asSequence([])
-  }
-  return range(start, lessThan - 1, 1)
-}
+// function rng2(start: number, lessThan: number): Sequence<number> {
+//   if (start == lessThan - 1) {
+//     return asSequence([start])
+//   } else if (start == lessThan) {
+//     return asSequence([])
+//   }
+//   return range(start, lessThan - 1, 1)
+// }
 export function xshow(e:Exp):string {
   if (e instanceof Add) {
     return  "add(" + xshow(e.l) + ", " + xshow(e.r) + ")"
